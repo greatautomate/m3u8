@@ -3,3 +3,4 @@ aiohttp>=3.8.0
 aiofiles>=22.1.0
 m3u8>=3.5.0
 python-dotenv>=1.0.0
+tgcrypto>=1.2.5

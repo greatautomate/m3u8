@@ -4,8 +4,8 @@ import logging
 import tempfile
 import shutil
 from pathlib import Path
-from hydrogram import Client, filters
-from hydrogram.types import Message
+from pyrogram import Client, filters
+from pyrogram.types import Message
 from dotenv import load_dotenv
 import aiohttp
 import aiofiles
@@ -87,12 +87,20 @@ async def download_m3u8_segments(url: str, temp_dir: str, session: aiohttp.Clien
             filename = f"segment_{i:04d}.ts"
             filepath = os.path.join(temp_dir, filename)
 
-            # Download segment
-            async with session.get(segment_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                response.raise_for_status()
-                async with aiofiles.open(filepath, 'wb') as f:
-                    async for chunk in response.content.iter_chunked(CHUNK_SIZE):
-                        await f.write(chunk)
+            # Download segment with retry
+            max_retries = 3
+            for retry in range(max_retries):
+                try:
+                    async with session.get(segment_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                        response.raise_for_status()
+                        async with aiofiles.open(filepath, 'wb') as f:
+                            async for chunk in response.content.iter_chunked(CHUNK_SIZE):
+                                await f.write(chunk)
+                    break
+                except Exception as e:
+                    if retry == max_retries - 1:
+                        raise e
+                    await asyncio.sleep(1)
 
             downloaded_segments.append(filepath)
 
@@ -258,7 +266,7 @@ Add a custom filename after a pipe `|` character:
 /start - Show this help message
 /help - Show this help message
 
-Made with ❤️ using Hydrogram
+Made with ❤️ using Pyrogram
     """
     await message.reply_text(welcome_text)
 
@@ -379,7 +387,7 @@ async def handle_url(client: Client, message: Message):
 async def main():
     """Main function to run the bot"""
     try:
-        logger.info("Starting M3U8 Bot...")
+        logger.info("Starting M3U8 Bot with Pyrogram...")
 
         # Start the bot
         await app.start()
